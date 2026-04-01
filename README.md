@@ -1,124 +1,70 @@
 # PRemote Uploader to Google Drive
 
-A full-stack MERN upload portal where any user can upload files through a simple web UI, and every file is stored in one fixed Google Drive folder controlled by the owner.
+Simple upload-only app for Vercel deployment.
 
-This project is designed for both:
+- Frontend: React (Vite)
+- Backend: one Vercel Serverless Function at `/api/upload`
+- Goal: upload files directly to one fixed Google Drive folder
 
-- Showcase/demo portfolios
-- Personal use with your own Google credentials and Drive folder
+## Step 1: Keep only the upload backend function
 
-## Showcase Highlights
+This repo now includes one function:
 
-- Clean upload-first UI (no user login required)
-- Node.js + Express upload API with `multer`
-- Google Drive upload integration via `googleapis`
-- Owner account token flow (refresh token based)
-- MongoDB logging for upload records
-- Production-minded security defaults and environment-based secrets
+- `api/upload.js`
 
-## Tech Stack
+It accepts a file via multipart/form-data and uploads it to your Google Drive folder using Google OAuth credentials stored in Vercel env variables.
 
-- Frontend: React + Vite
-- Backend: Node.js + Express
-- Database: MongoDB + Mongoose
-- Google Integration: Drive API (`googleapis`)
+No listing endpoint is required.
 
-## Architecture
+## Step 2: Vercel Environment Variables
 
-1. User opens frontend and chooses a file.
-2. Frontend posts multipart data to backend `/upload`.
-3. Backend uses owner refresh token (and optional access token) to call Google Drive API.
-4. File is created in the configured folder with `drive.files.create()`.
-5. Backend returns Drive file ID and view link.
+In Vercel Project Settings -> Environment Variables, add:
 
-## Folder Structure
-
-```text
-uploader/
-  client/
-    src/
-      components/
-      App.jsx
-      main.jsx
-      styles.css
-    .env.example
-    package.json
-  server/
-    src/
-      config/
-      models/
-      routes/
-      app.js
-      server.js
-    .env.example
-    package.json
-  .gitignore
-  package.json
-  README.md
-```
-
-## Personal Setup (Use Your Own Credentials)
-
-### 1. Google Cloud
-
-1. Create a Google Cloud project.
-2. Enable Google Drive API.
-3. Create OAuth 2.0 Web Client credentials.
-4. Generate a refresh token for your Google account (owner account) with scope:
-   - `https://www.googleapis.com/auth/drive.file`
-5. Create/select a target folder in Google Drive.
-
-### 2. Environment Files
-
-```bash
-cp server/.env.example server/.env
-cp client/.env.example client/.env
-```
-
-Fill `server/.env`:
-
-- `PORT`
-- `NODE_ENV`
-- `MONGO_URI`
-- `CLIENT_URL`
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_OWNER_ACCESS_TOKEN` (optional)
-- `GOOGLE_OWNER_REFRESH_TOKEN` (required)
-- `DRIVE_FOLDER_ID` (required)
+- `GOOGLE_OWNER_REFRESH_TOKEN`
+- `DRIVE_FOLDER_ID`
 
-Fill `client/.env`:
+These are used only by `api/upload.js`.
+Do not expose them in frontend code.
 
-- `VITE_API_URL` (example: `http://localhost:5000`)
+## Step 3: Frontend upload
 
-### 3. Install and Run
+Frontend sends file to `/api/upload`:
 
-```bash
-npm install
-npm install --prefix server
-npm install --prefix client
-npm run dev
+```javascript
+const formData = new FormData();
+formData.append("file", fileInput.files[0]);
+
+fetch("/api/upload", {
+  method: "POST",
+  body: formData
+})
+  .then((res) => res.json())
+  .then((data) => console.log("Uploaded:", data));
 ```
 
-Default URLs:
+## Step 4: Test upload
 
-- Frontend: `http://localhost:5173` (or next free Vite port)
-- Backend: `http://localhost:5000`
+- Local: `vercel dev` and test `/api/upload`
+- Deployed: push to GitHub -> Vercel auto-deploys -> frontend uploads to Google Drive
+
+## Project Structure
+
+```text
+.
+  api/
+    upload.js
+  client/
+    src/
+      App.jsx
+      components/UploadCard.jsx
+  vercel.json
+  package.json
+```
 
 ## Security Notes
 
-- Never commit `.env` files or OAuth credential JSON files.
-- Keep tokens only on backend, never in frontend code.
-- Rotate credentials immediately if exposed.
-- Use HTTPS and restricted CORS origins in production.
-
-## Deployment Notes
-
-- Set `NODE_ENV=production`.
-- Use managed MongoDB (Atlas or equivalent).
-- Set production `CLIENT_URL` and `VITE_API_URL`.
-- Ensure the server process can write temporary upload files.
-
-## License
-
-Use this project freely for learning and personal deployment.
+- Never commit `.env` or OAuth client secret files.
+- Keep all Google tokens server-side only.
+- Rotate tokens immediately if leaked.

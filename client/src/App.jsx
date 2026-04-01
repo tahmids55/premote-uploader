@@ -1,14 +1,5 @@
 import { useState } from "react";
-import axios from "axios";
 import UploadCard from "./components/UploadCard.jsx";
-
-const apiBaseUrl =
-  import.meta.env.VITE_API_URL ||
-  (import.meta.env.DEV ? "http://localhost:5000" : "");
-
-const api = axios.create({
-  baseURL: apiBaseUrl
-});
 
 export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -29,42 +20,30 @@ export default function App() {
       return;
     }
 
-    if (!apiBaseUrl) {
-      setError(
-        "Upload is not configured for production. Set VITE_API_URL in Vercel and redeploy."
-      );
-      return;
-    }
-
     const formData = new FormData();
     formData.append("file", selectedFile);
 
     setIsUploading(true);
     setError("");
     setResult(null);
+    setProgress(20);
 
     try {
-      const response = await api.post("/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-        onUploadProgress: (event) => {
-          const total = event.total || 1;
-          const value = Math.round((event.loaded / total) * 100);
-          setProgress(value);
-        }
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
       });
 
-      setProgress(100);
-      setResult(response.data);
-    } catch (uploadError) {
-      if (!uploadError.response) {
-        setError(
-          "Upload failed: backend is unreachable. Check if server is running and MongoDB is connected."
-        );
-      } else if (uploadError.response.status === 413) {
-        setError("Upload failed: file is too large (limit is 20MB).");
-      } else {
-        setError(uploadError.response?.data?.message || "Upload failed.");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.message || "Upload failed");
       }
+
+      setProgress(100);
+      setResult(data);
+    } catch (uploadError) {
+      setError(uploadError.message || "Upload failed.");
     } finally {
       setIsUploading(false);
     }

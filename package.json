@@ -10,6 +10,10 @@
     "build": "npm install --prefix client && npm run build --prefix client",
     "start": "npm run start --prefix server"
   },
+  "dependencies": {
+    "formidable": "^3.5.4",
+    "googleapis": "^144.0.0"
+  },
   "devDependencies": {
     "concurrently": "^9.0.1"
   }
