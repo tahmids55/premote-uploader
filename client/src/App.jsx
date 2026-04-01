@@ -34,10 +34,20 @@ export default function App() {
         body: formData
       });
 
-      const data = await response.json();
+      const responseText = await response.text();
+      let data = null;
+
+      try {
+        data = responseText ? JSON.parse(responseText) : null;
+      } catch (_parseError) {
+        data = null;
+      }
 
       if (!response.ok) {
-        throw new Error(data?.message || "Upload failed");
+        const detailedMessage = data?.details
+          ? `${data?.message || "Upload failed"}: ${data.details}`
+          : data?.message || `Upload failed (HTTP ${response.status})`;
+        throw new Error(detailedMessage);
       }
 
       setProgress(100);

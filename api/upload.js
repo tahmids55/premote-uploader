@@ -1,6 +1,6 @@
-import fs from "fs";
-import { google } from "googleapis";
-import formidable from "formidable";
+const fs = require("fs");
+const { google } = require("googleapis");
+const formidable = require("formidable");
 
 function parseMultipart(req) {
   const form = formidable({
@@ -30,11 +30,33 @@ function pickUploadedFile(files) {
   return Array.isArray(fileEntry) ? fileEntry[0] : fileEntry;
 }
 
-export default async function handler(req, res) {
+function resolveFolderId(value) {
+  const input = String(value || "").trim();
+
+  if (!input) {
+    return "";
+  }
+
+  const byPath = input.match(/\/folders\/([a-zA-Z0-9_-]+)/);
+  if (byPath?.[1]) {
+    return byPath[1];
+  }
+
+  const byQuery = input.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (byQuery?.[1]) {
+    return byQuery[1];
+  }
+
+  return input;
+}
+
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ message: "Method not allowed" });
   }
+
+  let uploadedFile;
 
   try {
     const required = [
@@ -51,7 +73,7 @@ export default async function handler(req, res) {
     }
 
     const { files } = await parseMultipart(req);
-    const uploadedFile = pickUploadedFile(files);
+    uploadedFile = pickUploadedFile(files);
 
     if (!uploadedFile) {
       return res.status(400).json({ message: "No file uploaded" });
@@ -68,6 +90,12 @@ export default async function handler(req, res) {
 
     await oauth2Client.getAccessToken();
 
+    const folderId = resolveFolderId(process.env.DRIVE_FOLDER_ID);
+
+    if (!folderId) {
+      return res.status(500).json({ message: "Invalid DRIVE_FOLDER_ID value" });
+    }
+
     const drive = google.drive({
       version: "v3",
       auth: oauth2Client
@@ -76,13 +104,14 @@ export default async function handler(req, res) {
     const created = await drive.files.create({
       requestBody: {
         name: uploadedFile.originalFilename || uploadedFile.newFilename,
-        parents: [process.env.DRIVE_FOLDER_ID]
+        parents: [folderId]
       },
       media: {
         mimeType: uploadedFile.mimetype || "application/octet-stream",
         body: fs.createReadStream(uploadedFile.filepath)
       },
-      fields: "id,webViewLink"
+      fields: "id,webViewLink",
+      supportsAllDrives: true
     });
 
     return res.status(200).json({
@@ -95,5 +124,9 @@ export default async function handler(req, res) {
       message: "Upload failed",
       details: error.message
     });
+  } finally {
+    if (uploadedFile?.filepath && fs.existsSync(uploadedFile.filepath)) {
+      fs.unlinkSync(uploadedFile.filepath);
+    }
   }
-}
+};
