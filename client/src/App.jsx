@@ -2,8 +2,12 @@ import { useState } from "react";
 import axios from "axios";
 import UploadCard from "./components/UploadCard.jsx";
 
+const apiBaseUrl =
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.DEV ? "http://localhost:5000" : "");
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000"
+  baseURL: apiBaseUrl
 });
 
 export default function App() {
@@ -22,6 +26,13 @@ export default function App() {
 
   const handleUpload = async () => {
     if (!selectedFile) {
+      return;
+    }
+
+    if (!apiBaseUrl) {
+      setError(
+        "Upload is not configured for production. Set VITE_API_URL in Vercel and redeploy."
+      );
       return;
     }
 
