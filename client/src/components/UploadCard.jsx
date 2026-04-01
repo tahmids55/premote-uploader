@@ -12,21 +12,30 @@ export default function UploadCard({
   const progressText = useMemo(() => `${Math.min(progress, 100)}%`, [progress]);
 
   return (
-    <div className="card">
+    <section className="card upload-card">
       <div className="card__top">
         <div>
           <h2>Upload to Google Drive</h2>
-          <p>Select a file and upload. It will be sent to the owner's folder.</p>
+          <p>Choose your file and send it to the protected destination folder.</p>
         </div>
+        <p className="upload-card__hint">Max file size: 20 MB</p>
       </div>
 
       <label className="file-picker" htmlFor="fileUpload">
+        <span className="file-picker__title">Select file</span>
         <input
           id="fileUpload"
           type="file"
           onChange={onFileChange}
           disabled={isUploading}
         />
+        {selectedFile ? (
+          <span className="file-picker__name">{selectedFile.name}</span>
+        ) : (
+          <span className="file-picker__name file-picker__name--empty">
+            No file selected
+          </span>
+        )}
       </label>
 
       <button
@@ -49,6 +58,6 @@ export default function UploadCard({
       )}
 
       {error && <p className="error-message">{error}</p>}
-    </div>
+    </section>
   );
 }
