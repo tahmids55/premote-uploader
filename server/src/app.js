@@ -4,7 +4,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
+
 import uploadRoutes from "./routes/uploadRoutes.js";
+import verifyRoutes from "./routes/verifyRoutes.js";
 
 export const app = express();
 
@@ -37,6 +39,7 @@ app.use(
 
 app.use(express.json());
 
+app.use("/api/verify", verifyRoutes);
 app.use(
   rateLimit({
     windowMs: 15 * 60 * 1000,

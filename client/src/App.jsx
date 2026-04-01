@@ -1,5 +1,8 @@
 import { useState } from "react";
+
 import UploadCard from "./components/UploadCard.jsx";
+import VerifyPage from "./components/VerifyPage.jsx";
+
 
 export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -7,6 +10,7 @@ export default function App() {
   const [progress, setProgress] = useState(0);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [verified, setVerified] = useState(false);
 
   const handleFileChange = (event) => {
     setError("");
@@ -58,6 +62,10 @@ export default function App() {
       setIsUploading(false);
     }
   };
+
+  if (!verified) {
+    return <VerifyPage onVerify={() => setVerified(true)} />;
+  }
 
   return (
     <main className="app-shell">
