@@ -52,6 +52,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/upload", uploadRoutes);
+app.use("/api/upload", uploadRoutes);
 
 app.use((error, _req, res, _next) => {
   console.error(error);

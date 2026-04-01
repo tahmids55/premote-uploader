@@ -26,7 +26,9 @@ const requiredEnv = [
   "CLIENT_URL",
   "GOOGLE_CLIENT_ID",
   "GOOGLE_CLIENT_SECRET",
-  "GOOGLE_OWNER_REFRESH_TOKEN"
+  "GOOGLE_OWNER_REFRESH_TOKEN",
+  "VERIFY_NAME",
+  "SECRET_CODE"
 ];
 
 requiredEnv.forEach((key) => {
@@ -54,5 +56,7 @@ export const env = {
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
   googleOwnerAccessToken: process.env.GOOGLE_OWNER_ACCESS_TOKEN || "",
   googleOwnerRefreshToken: process.env.GOOGLE_OWNER_REFRESH_TOKEN,
-  driveFolderId: resolvedFolderId
+  driveFolderId: resolvedFolderId,
+  verifyName: process.env.VERIFY_NAME,
+  secretCode: process.env.SECRET_CODE
 };

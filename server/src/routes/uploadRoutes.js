@@ -4,6 +4,7 @@ import multer from "multer";
 import { createDriveClient, createOAuthClient } from "../config/google.js";
 import { env } from "../config/env.js";
 import { Upload } from "../models/Upload.js";
+import { requireVerified } from "../middleware/verification.js";
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const upload = multer({
   }
 });
 
-router.post("/", upload.single("file"), async (req, res, next) => {
+router.post("/", requireVerified, upload.single("file"), async (req, res, next) => {
   let filePath;
 
   try {

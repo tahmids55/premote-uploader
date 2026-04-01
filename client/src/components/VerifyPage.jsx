@@ -14,14 +14,23 @@ const VerifyPage = ({ onVerify }) => {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/verify/secret-code`);
-      if (!res.ok) throw new Error('Could not fetch verification info');
-      const data = await res.json();
-      if (name.trim() === data.name && code.trim() === data.code) {
-        onVerify();
-      } else {
-        setError('Verification failed.');
+      const res = await fetch(`${API_BASE}/api/verify/check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: name.trim(),
+          code: code.trim()
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Verification failed');
       }
+
+      onVerify();
     } catch (err) {
       setError('Verification failed.');
     } finally {
@@ -49,7 +58,7 @@ const VerifyPage = ({ onVerify }) => {
             type="password"
             value={code}
             onChange={e => setCode(e.target.value)}
-            placeholder="Enter code (e.g., 1234)"
+            placeholder="Enter your secret code"
             required
           />
         </label>

@@ -3,6 +3,8 @@ import { useState } from "react";
 import UploadCard from "./components/UploadCard.jsx";
 import VerifyPage from "./components/VerifyPage.jsx";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 
 export default function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -33,8 +35,9 @@ export default function App() {
     setProgress(20);
 
     try {
-      const response = await fetch("/api/upload", {
+      const response = await fetch(`${API_BASE}/api/upload`, {
         method: "POST",
+        credentials: "include",
         body: formData
       });
 

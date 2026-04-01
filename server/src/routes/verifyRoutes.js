@@ -1,15 +1,42 @@
 import express from "express";
+import crypto from "crypto";
 import { env } from "../config/env.js";
+import {
+  clearVerifiedCookie,
+  setVerifiedCookie
+} from "../middleware/verification.js";
 
 const router = express.Router();
 
+function safeEqual(a, b) {
+  const left = Buffer.from(String(a || ""));
+  const right = Buffer.from(String(b || ""));
 
-router.get("/secret-code", (req, res) => {
-  // Only send the code and name if set in env
-  if (!process.env.SECRET_CODE || !process.env.VERIFY_NAME) {
-    return res.status(404).json({ message: "Verification info not set" });
+  if (left.length !== right.length) {
+    return false;
   }
-  res.json({ code: process.env.SECRET_CODE, name: process.env.VERIFY_NAME });
+
+  return crypto.timingSafeEqual(left, right);
+}
+
+router.post("/check", (req, res) => {
+  const { name, code } = req.body || {};
+
+  const isNameValid = safeEqual(String(name || "").trim(), env.verifyName);
+  const isCodeValid = safeEqual(String(code || "").trim(), env.secretCode);
+
+  if (!isNameValid || !isCodeValid) {
+    clearVerifiedCookie(res);
+    return res.status(401).json({ message: "Verification failed" });
+  }
+
+  setVerifiedCookie(res);
+  return res.json({ verified: true });
+});
+
+router.post("/clear", (_req, res) => {
+  clearVerifiedCookie(res);
+  return res.json({ cleared: true });
 });
 
 export default router;
