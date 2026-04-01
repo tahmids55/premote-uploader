@@ -1,0 +1,16 @@
+{
+  "name": "personal-cloud-uploader",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MERN app to upload files directly to user Google Drive",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "npm run start --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
