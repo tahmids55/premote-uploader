@@ -22,16 +22,26 @@ function safeEqual(a, b) {
 router.post("/check", (req, res) => {
   const { name, code } = req.body || {};
 
+  if (!env.verifyName || !env.secretCode) {
+    clearVerifiedCookie(res);
+    return res.status(500).json({ message: "Verification is not configured on server" });
+  }
+
   const isNameValid = safeEqual(String(name || "").trim(), env.verifyName);
   const isCodeValid = safeEqual(String(code || "").trim(), env.secretCode);
 
   if (!isNameValid || !isCodeValid) {
     clearVerifiedCookie(res);
-    return res.status(401).json({ message: "Verification failed" });
+    return res.status(401).json({ message: "Verification failed: name or secret code is incorrect" });
   }
 
   setVerifiedCookie(res);
   return res.json({ verified: true });
+});
+
+router.post("/", (req, res) => {
+  req.url = "/check";
+  return router.handle(req, res);
 });
 
 router.post("/clear", (_req, res) => {

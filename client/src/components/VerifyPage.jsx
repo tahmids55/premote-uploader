@@ -27,12 +27,19 @@ const VerifyPage = ({ onVerify }) => {
       });
 
       if (!res.ok) {
-        throw new Error("Verification failed");
+        let message = "Verification failed.";
+        try {
+          const data = await res.json();
+          message = data?.message || message;
+        } catch (_parseError) {
+          // Use default message when error body is not JSON.
+        }
+        throw new Error(message);
       }
 
       onVerify();
-    } catch (_error) {
-      setError("Verification failed. Check both fields and try again.");
+    } catch (requestError) {
+      setError(requestError.message || "Verification failed.");
     } finally {
       setLoading(false);
     }

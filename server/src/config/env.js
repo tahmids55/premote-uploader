@@ -57,6 +57,6 @@ export const env = {
   googleOwnerAccessToken: process.env.GOOGLE_OWNER_ACCESS_TOKEN || "",
   googleOwnerRefreshToken: process.env.GOOGLE_OWNER_REFRESH_TOKEN,
   driveFolderId: resolvedFolderId,
-  verifyName: process.env.VERIFY_NAME,
-  secretCode: process.env.SECRET_CODE
+  verifyName: String(process.env.VERIFY_NAME || "").trim(),
+  secretCode: String(process.env.SECRET_CODE || "").trim()
 };
