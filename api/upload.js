@@ -1,9 +1,9 @@
 const fs = require("fs");
 const { google } = require("googleapis");
-const formidable = require("formidable");
+const { IncomingForm } = require("formidable");
 
 function parseMultipart(req) {
-  const form = formidable({
+  const form = new IncomingForm({
     multiples: false,
     maxFileSize: 20 * 1024 * 1024
   });
@@ -62,7 +62,6 @@ module.exports = async function handler(req, res) {
     const required = [
       "GOOGLE_CLIENT_ID",
       "GOOGLE_CLIENT_SECRET",
-      "GOOGLE_OWNER_REFRESH_TOKEN",
       "DRIVE_FOLDER_ID"
     ];
 
@@ -81,14 +80,44 @@ module.exports = async function handler(req, res) {
 
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET
+      process.env.GOOGLE_CLIENT_SECRET,
+      process.env.GOOGLE_REDIRECT_URI || undefined
     );
 
+    const refreshToken = process.env.GOOGLE_OWNER_REFRESH_TOKEN || "";
+    const accessToken = process.env.GOOGLE_OWNER_ACCESS_TOKEN || "";
+
+    if (!refreshToken && !accessToken) {
+      return res.status(500).json({
+        message:
+          "Missing credentials: set GOOGLE_OWNER_REFRESH_TOKEN or GOOGLE_OWNER_ACCESS_TOKEN"
+      });
+    }
+
     oauth2Client.setCredentials({
-      refresh_token: process.env.GOOGLE_OWNER_REFRESH_TOKEN
+      refresh_token: refreshToken || undefined,
+      access_token: accessToken || undefined
     });
 
-    await oauth2Client.getAccessToken();
+    if (refreshToken) {
+      try {
+        await oauth2Client.getAccessToken();
+      } catch (refreshError) {
+        const errorCode = refreshError?.response?.data?.error;
+
+        if (errorCode === "unauthorized_client") {
+          if (!accessToken) {
+            return res.status(401).json({
+              message: "Google OAuth client is not authorized for this refresh token.",
+              details:
+                "Recreate GOOGLE_OWNER_REFRESH_TOKEN using the same GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET configured in Vercel."
+            });
+          }
+        } else {
+          throw refreshError;
+        }
+      }
+    }
 
     const folderId = resolveFolderId(process.env.DRIVE_FOLDER_ID);
 
