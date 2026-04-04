@@ -54,7 +54,6 @@ export const env = {
   clientUrl: process.env.CLIENT_URL,
   googleClientId: process.env.GOOGLE_CLIENT_ID,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  googleOwnerAccessToken: process.env.GOOGLE_OWNER_ACCESS_TOKEN || "",
   googleOwnerRefreshToken: process.env.GOOGLE_OWNER_REFRESH_TOKEN,
   driveFolderId: resolvedFolderId,
   verifyName: String(process.env.VERIFY_NAME || "").trim(),

@@ -1,6 +1,7 @@
 const fs = require("fs");
 const { google } = require("googleapis");
 const { IncomingForm } = require("formidable");
+const { getAccessToken } = require("./lib/googleAuth");
 
 function parseMultipart(req) {
   const form = new IncomingForm({
@@ -62,6 +63,7 @@ module.exports = async function handler(req, res) {
     const required = [
       "GOOGLE_CLIENT_ID",
       "GOOGLE_CLIENT_SECRET",
+      "GOOGLE_OWNER_REFRESH_TOKEN",
       "DRIVE_FOLDER_ID"
     ];
 
@@ -84,40 +86,15 @@ module.exports = async function handler(req, res) {
       process.env.GOOGLE_REDIRECT_URI || undefined
     );
 
-    const refreshToken = process.env.GOOGLE_OWNER_REFRESH_TOKEN || "";
-    const accessToken = process.env.GOOGLE_OWNER_ACCESS_TOKEN || "";
-
-    if (!refreshToken && !accessToken) {
-      return res.status(500).json({
-        message:
-          "Missing credentials: set GOOGLE_OWNER_REFRESH_TOKEN or GOOGLE_OWNER_ACCESS_TOKEN"
-      });
-    }
-
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken || undefined,
-      access_token: accessToken || undefined
+    const accessToken = await getAccessToken({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      refreshToken: process.env.GOOGLE_OWNER_REFRESH_TOKEN
     });
 
-    if (refreshToken) {
-      try {
-        await oauth2Client.getAccessToken();
-      } catch (refreshError) {
-        const errorCode = refreshError?.response?.data?.error;
-
-        if (errorCode === "unauthorized_client") {
-          if (!accessToken) {
-            return res.status(401).json({
-              message: "Google OAuth client is not authorized for this refresh token.",
-              details:
-                "Recreate GOOGLE_OWNER_REFRESH_TOKEN using the same GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET configured in Vercel."
-            });
-          }
-        } else {
-          throw refreshError;
-        }
-      }
-    }
+    oauth2Client.setCredentials({
+      access_token: accessToken
+    });
 
     const folderId = resolveFolderId(process.env.DRIVE_FOLDER_ID);
 
@@ -149,6 +126,30 @@ module.exports = async function handler(req, res) {
     });
   } catch (error) {
     console.error("Upload function error:", error);
+
+    if (error.code === "invalid_grant") {
+      return res.status(401).json({
+        message: "Google refresh token is invalid or expired.",
+        details:
+          "Regenerate GOOGLE_OWNER_REFRESH_TOKEN from the same OAuth client and update it in Vercel."
+      });
+    }
+
+    if (error.code === "unauthorized_client") {
+      return res.status(401).json({
+        message: "Google OAuth client is not authorized for this refresh token.",
+        details:
+          "Ensure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET match the OAuth client used to create GOOGLE_OWNER_REFRESH_TOKEN."
+      });
+    }
+
+    if (typeof error.status === "number" && error.status >= 400 && error.status < 600) {
+      return res.status(error.status).json({
+        message: "Google OAuth token refresh request failed.",
+        details: error.message
+      });
+    }
+
     return res.status(500).json({
       message: "Upload failed",
       details: error.message
