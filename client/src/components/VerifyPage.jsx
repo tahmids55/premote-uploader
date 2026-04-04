@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
@@ -7,9 +7,36 @@ const VerifyPage = ({ onVerify }) => {
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [lockSecondsRemaining, setLockSecondsRemaining] = useState(0);
+
+  const isLocked = lockSecondsRemaining > 0;
+
+  const countdownLabel = useMemo(() => {
+    const minutes = Math.floor(lockSecondsRemaining / 60);
+    const seconds = lockSecondsRemaining % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }, [lockSecondsRemaining]);
+
+  useEffect(() => {
+    if (!isLocked) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => {
+      setLockSecondsRemaining((previous) => (previous <= 1 ? 0 : previous - 1));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isLocked]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isLocked) {
+      setError(`Too many failed attempts. Try again in ${countdownLabel}.`);
+      return;
+    }
+
     setError("");
     setLoading(true);
 
@@ -27,16 +54,24 @@ const VerifyPage = ({ onVerify }) => {
       });
 
       if (!res.ok) {
+        let data;
         let message = "Verification failed.";
         try {
-          const data = await res.json();
+          data = await res.json();
           message = data?.message || message;
         } catch (_parseError) {
           // Use default message when error body is not JSON.
         }
+
+        const retryAfterSeconds = Number(data?.retryAfterSeconds || 0);
+        if (retryAfterSeconds > 0) {
+          setLockSecondsRemaining(retryAfterSeconds);
+        }
+
         throw new Error(message);
       }
 
+      setLockSecondsRemaining(0);
       onVerify();
     } catch (requestError) {
       setError(requestError.message || "Verification failed.");
@@ -64,6 +99,7 @@ const VerifyPage = ({ onVerify }) => {
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter verification name"
               autoComplete="off"
+              disabled={loading || isLocked}
               required
             />
           </label>
@@ -77,13 +113,18 @@ const VerifyPage = ({ onVerify }) => {
               onChange={(e) => setCode(e.target.value)}
               placeholder="Enter secret code"
               autoComplete="off"
+              disabled={loading || isLocked}
               required
             />
           </label>
 
-          <button className="btn btn--primary verify-btn" type="submit" disabled={loading}>
+          <button className="btn btn--primary verify-btn" type="submit" disabled={loading || isLocked}>
             {loading ? "Verifying..." : "Verify and Continue"}
           </button>
+
+          {isLocked ? (
+            <p className="verify-lockdown">Temporary IP ban active. Try again in {countdownLabel}.</p>
+          ) : null}
 
           {error ? <p className="error-message verify-error">{error}</p> : null}
         </form>

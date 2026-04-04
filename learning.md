@@ -225,6 +225,27 @@ Frontend remains Vercel-first (`/api/upload`) because you do not need local uplo
 
 ---
 
+## 14) Verify Page Brute-Force Protection Gap
+
+### Problem
+Verification endpoint allowed unlimited failed attempts from the same IP.
+
+### Before implementation
+- No maximum wrong-attempt limit.
+- No temporary IP ban after repeated failures.
+- No countdown feedback in UI after lockout.
+
+### Solution
+- Added per-IP failed-attempt tracking.
+- Applied max 3 wrong attempts.
+- On third failure, applied 5-minute IP ban (HTTP 429 with `Retry-After`).
+- Verify page now shows a live countdown and disables form submit/inputs during lockout.
+
+### Key outcome
+Verification is now resistant to repeated rapid guessing attempts, with clear lockout feedback to the user.
+
+---
+
 ## Final Guidance for Stable Deployment
 
 1. Keep Vercel env values consistent and from same OAuth app.

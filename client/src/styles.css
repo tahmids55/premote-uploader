@@ -271,6 +271,16 @@ body {
   margin: 0.25rem 0 0;
 }
 
+.verify-lockdown {
+  margin: 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(159, 37, 48, 0.26);
+  border-radius: 10px;
+  background: rgba(159, 37, 48, 0.08);
+  color: #7b1b24;
+  font-weight: 600;
+}
+
 @keyframes riseIn {
   from {
     opacity: 0;
